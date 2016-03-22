@@ -37,6 +37,7 @@ public class MyController extends Observable implements CS355Controller{
 	public int viewWidth = 512;
 	public boolean Toggle3D = false;
 	public int rotation = 0;
+	public Point3D home;
 
 	public void init() {
 		triangleCount = 0;
@@ -424,7 +425,11 @@ public class MyController extends Observable implements CS355Controller{
 	@Override
 	public void openScene(File file) {
 		scene.open(file);
+		home = scene.getCameraPosition();
 		Toggle3D = true;
+		zoomLevel = 5;
+		viewPoint.setLocation(0, 0);
+		viewWidth=2048;
 		setChanged();
 		notifyObservers();
 	}
@@ -435,6 +440,9 @@ public class MyController extends Observable implements CS355Controller{
 			Toggle3D = false;
 		}else {
 			Toggle3D = true;
+			zoomLevel = 5;
+			viewPoint.setLocation(0, 0);
+			viewWidth=2048;
 		}
 		setChanged();
 		notifyObservers();
@@ -442,41 +450,58 @@ public class MyController extends Observable implements CS355Controller{
 
 	@Override
 	public void keyPressed(Iterator<Integer> iterator) {
-		// TODO Implement the transformations
 		if(Toggle3D){
 			int tmp = iterator.next();
 			if(tmp == 65){
 				//A
-				System.out.println("A");
+				Point3D pos = scene.getCameraPosition();
+				Point3D newPos = new Point3D(pos.x - (float)(.5 * Math.cos(rotation*Math.PI/180)),pos.y + 0,pos.z - (float)(.5 * Math.sin(rotation*Math.PI/180)));
+				scene.setCameraPosition(newPos);
 			}else if(tmp == 68){
 				//D
-				System.out.println("D");
+				Point3D pos = scene.getCameraPosition();
+				Point3D newPos = new Point3D(pos.x + (float)(.5 * Math.cos(rotation*Math.PI/180)),pos.y + 0,pos.z + (float)(.5 * Math.sin(rotation*Math.PI/180)));
+				scene.setCameraPosition(newPos);
 			}else if(tmp == 72){
 				//H
-				System.out.println("H");
+				rotation = 0;
+				scene.setCameraPosition(home);
+				scene.setCameraRotation(rotation);
 			}else if(tmp == 87){
 				//W
-				System.out.println("W");
+				Point3D pos = scene.getCameraPosition();
+				Point3D newPos = new Point3D(pos.x+(float)(.5 * Math.sin(rotation*Math.PI/180)),pos.y-0,pos.z-(float)(.5 * Math.cos(rotation*Math.PI/180)));
+				scene.setCameraPosition(newPos);
 			}else if(tmp == 83){
 				//S
-				System.out.println("S");
+				Point3D pos = scene.getCameraPosition();
+				Point3D newPos = new Point3D(pos.x-(float)(.5 * Math.sin(rotation*Math.PI/180)),pos.y-0,pos.z+(float)(.5 * Math.cos(rotation*Math.PI/180)));
+				scene.setCameraPosition(newPos);
+			}else if(tmp == 82){
+				//R
+				Point3D pos = scene.getCameraPosition();
+				Point3D newPos = new Point3D(pos.x,pos.y + (float).5,pos.z);
+				scene.setCameraPosition(newPos);
+			}else if(tmp == 70){
+				//F
+				Point3D pos = scene.getCameraPosition();
+				Point3D newPos = new Point3D(pos.x,pos.y - (float).5,pos.z);
+				scene.setCameraPosition(newPos);
 			}else if(tmp == 81){
 				rotation--;
 				if(rotation<0){
 					rotation = 359;
 				}
 				scene.setCameraRotation(rotation);
-				setChanged();
-				notifyObservers();
 			}else if(tmp == 69){
 				rotation++;
 				if(rotation == 360){
 					rotation = 0;
 				}
 				scene.setCameraRotation(rotation);
-				setChanged();
-				notifyObservers();
 			}else{}
+			setChanged();
+			notifyObservers();
 		}
 	}
 

@@ -230,16 +230,20 @@ public class MyView implements ViewRefresher{
 	public void render3D(Graphics2D g2d){
 		Graphics2D toDrawOn = (Graphics2D) g2d;
 		CS355Scene scene = controllerUpdate.getScene();
-		ArrayList<Instance> instances = scene.instances();
-		AffineTransform test = new AffineTransform();
-		toDrawOn.setTransform(test);
+		ArrayList<Instance> instances = scene.instances();	
+		
+		AffineTransform objToWorld = new AffineTransform(1/controllerUpdate.getScale(),0,0,1/controllerUpdate.getScale(),0,0);
+		objToWorld.concatenate(new AffineTransform(1,0,0,1,-controllerUpdate.getViewPoint().getX(),-controllerUpdate.getViewPoint().getY()));
+		toDrawOn.setTransform(objToWorld);
+		//toDrawOn.setTransform(new AffineTransform());
+		
 		double translation[][] = {
 				{1,0,0,-scene.getCameraPosition().x},
 				{0,1,0,-scene.getCameraPosition().y},
 				{0,0,1,-scene.getCameraPosition().z},
 				{0,0,0,1}
 		};	
-		double r = scene.getCameraRotation();
+		double r = (scene.getCameraRotation()*Math.PI)/180;
 		double rotate[][] = {
 				{Math.cos(r),0,Math.sin(r),0},
 				{0,1,0,0},
@@ -250,14 +254,16 @@ public class MyView implements ViewRefresher{
 		double[][] clip = {
 				{1,0,0,0},
 				{0,1,0,0},
-				{0,0,(50.0+1.5)/(50.0-1.5),(-2*1.5*50)/(50-1.5)},
-				{0,0,1,0}
+				{0,0,-(50.0)/(50.0),(-2*50)/(50)},
+				{0,0,-1,0}
 				
 		};
 		
+
+		
 		double[][] toScreen = {
-				{controllerUpdate.getViewWidth()/2,0,controllerUpdate.getViewWidth()/2},
-				{0,controllerUpdate.getViewWidth()/2,controllerUpdate.getViewWidth()/2},
+				{1024,0,1024},
+				{0,-1024,1024},
 				{0,0,1}
 		};
 		
@@ -265,8 +271,10 @@ public class MyView implements ViewRefresher{
 		
 		for(int i = 0; i < instances.size(); i++){
 			Instance inst = instances.get(i);
+			
 			List<Line3D> lines = inst.getModel().getLines();
 			toDrawOn.setColor(inst.getColor());
+			
 			for(int j = 0; j < lines.size(); j++){
 				Point3D start = lines.get(j).start;
 				double[][] homoP = {{start.x},{start.y},{start.z},{1}};
@@ -278,20 +286,19 @@ public class MyView implements ViewRefresher{
 				newP = multiplyMatrix(worldToCamera,homoP);
 				double[][] clipEnd = multiplyMatrix(clip,newP);
 				
-				//TODO Clipping is not working correctly
-				/*if(clipStart[0][0] < -clipStart[3][0] && clipEnd[0][0] < -clipEnd[3][0]){
+				double startW = Math.abs(clipStart[3][0]);
+				double endW = Math.abs(clipEnd[3][0]);
+				if(clipStart[0][0] < -startW && clipEnd[0][0] < -endW){
 					continue;
-				}else if(clipStart[0][0] > clipStart[3][0] && clipEnd[0][0] > clipEnd[3][0]){
+				}else if(clipStart[0][0] > startW && clipEnd[0][0] > endW){
 					continue;
-				}else if(clipStart[1][0] < -clipStart[3][0] && clipEnd[1][0] < -clipEnd[3][0]){
+				}else if(clipStart[1][0] < -startW && clipEnd[1][0] < -endW){
 					continue;
-				}else if(clipStart[1][0] > clipStart[3][0] && clipEnd[1][0] > clipEnd[3][0]){
+				}else if(clipStart[1][0] > startW && clipEnd[1][0] > endW){
 					continue;
-				}else if(clipStart[2][0] < -clipStart[3][0] || clipEnd[2][0] < -clipEnd[3][0]){
+				}else if(clipStart[2][0] < -startW || clipEnd[2][0] < -endW){
 					continue;
-				}else if(clipStart[2][0] > clipStart[3][0] || clipEnd[2][0] > clipEnd[3][0]){
-					continue;
-				}*/
+				}
 				
 				double[][] start2D = {
 						{clipStart[0][0]/clipStart[3][0]},
@@ -306,10 +313,20 @@ public class MyView implements ViewRefresher{
 				double[][] startScreenPoint = multiplyMatrix(toScreen,start2D);
 				double[][] endScreenPoint = multiplyMatrix(toScreen,end2D);
 				
+				if(j == 1){
+					/*System.out.println("ViewPoint: " + controllerUpdate.getViewPoint().getX() + "," + controllerUpdate.getViewPoint().getY());
+					System.out.println("ViewWidth: " + controllerUpdate.getViewWidth());
+					System.out.println("Translated Point: " + (int)startScreenPoint[0][0] + "," + (int)startScreenPoint[1][0]);
+					System.out.println("[x,y,z,w]: " + (int)clipEnd[0][0] + "," + (int)clipEnd[1][0] + "," + (int)clipEnd[2][0] + "," + (int)clipEnd[3][0] + ",");
+					System.out.println("[x/w,y/w,1]: " + (int)end2D[0][0] + "," + end2D[1][0] + ",1");
+					System.out.println("[WorldX,WorldY]: " + endScreenPoint[0][0] + "," + endScreenPoint[1][0]);
+					*/
+					System.out.println("[-1,1] Mapping: Start:" + start2D[0][0] + "," + start2D[1][0] + " End:" +  end2D[0][0] + "," + end2D[1][0]);
+					System.out.println("[-1,1] Mapping: Start:" + (int)startScreenPoint[0][0] + "," + (int)startScreenPoint[1][0] + " End:" +  (int)endScreenPoint[0][0] + "," + (int)endScreenPoint[1][0]);
+				}
 				
 				toDrawOn.drawLine((int)startScreenPoint[0][0], (int)startScreenPoint[1][0], (int)endScreenPoint[0][0], (int)endScreenPoint[1][0]);
-				//System.out.println("Start: " + start2D.getX() + "," + start2D.getY());
-				//System.out.println("End: " + + end2D.getX() + "," + end2D.getY());
+				//System.out.println("[-1,1] Mapping: Start:" + start2D[0][0] + "," + start2D[1][0] + " End:" +  end2D[0][0] + "," + end2D[1][0]);
 			}
 		}
 	}
